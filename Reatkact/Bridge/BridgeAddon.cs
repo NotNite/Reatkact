@@ -1,76 +1,53 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Addon;
-using KamiToolKit.Nodes;
 
 namespace Reatkact.Bridge;
 
-public class BridgeAddon(BridgeAddon.AddonOptions options) : IDisposable {
-    private readonly DynamicAddon addon = new() {
-        NativeController = Services.NativeController,
-        InternalName = "Reatkact", // FIXME
-        Title = options.Title,
-        Size = options.Size ?? AddonOptions.DefaultSize
-    };
+public class BridgeAddon(BridgeAddon.AddonOptions options) : NodeControlsBase, IDisposable {
+    // Separate class to not expose the inherited properties to JS
+    private readonly DynamicAddon addon = new(options);
 
     public void Open() => this.addon.Open();
     public void Close() => this.addon.Close();
+    public override void AppendNode(IBridgeNode child) => this.addon.AppendNode(child);
+    public override void InsertBefore(IBridgeNode child, IBridgeNode before) => this.addon.InsertBefore(child, before);
+    public override void RemoveChild(IBridgeNode child) => this.addon.RemoveChild(child);
 
-    // `object?` params are a dumb hack because it can't pick up the interface right
-    public void AppendNode(object? rawChild) {
-        if (rawChild is not IBridgeElement child) throw new Exception();
-
-        Services.PluginLog.Debug("BridgeAddon#AppendNode {Addon} {Child}", this, child);
-        NodeIdCounter.EnsureNodeId(child);
-        Services.NativeController.AttachToAddon(
-            child.Node,
-            this.addon
-        );
+    public void Dispose() {
+        // FIXME this isn't actually called anywhere lol
+        this.addon.Dispose();
     }
 
-    public void InsertBefore(object? rawChild, object? rawBefore) {
-        if (rawChild is not IBridgeElement child) throw new Exception();
-        if (rawBefore is not IBridgeElement before) throw new Exception();
+    private class DynamicAddon : NativeAddon, INodeControls {
+        [SetsRequiredMembers]
+        public DynamicAddon(AddonOptions options) {
+            this.NativeController = Services.NativeController;
+            this.InternalName = "Reatkact"; // FIXME this must be unique
+            this.Title = options.Title;
+            this.Size = new Vector2(options.Width, options.Height);
+        }
 
-        Services.PluginLog.Debug("BridgeAddon#InsertBefore {Addon} {Child} {Before}", this, child, before);
-        NodeIdCounter.EnsureNodeId(child);
-        NodeIdCounter.EnsureNodeId(before);
+        public void AppendNode(IBridgeNode child) {
+            NodeIdCounter.EnsureNodeId(child);
+            this.NativeController.AttachToAddon(child.Node, this);
+        }
 
-        // FIXME
-        Services.NativeController.AttachToAddon(
-            child.Node,
-            this.addon
-        );
-    }
+        public void InsertBefore(IBridgeNode child, IBridgeNode before) {
+            NodeIdCounter.EnsureNodeId(child);
+            NodeIdCounter.EnsureNodeId(before);
+            this.NativeController.AttachToAddon(child.Node, this); // FIXME
+        }
 
-    public void RemoveChild(object? rawChild) {
-        if (rawChild is not IBridgeElement child) throw new Exception();
-
-        Services.PluginLog.Debug("BridgeAddon#RemoveChild {Addon} {Child}", this, child);
-        Services.NativeController.DetachFromAddon(child.Node, this.addon);
-    }
-
-    // Separate class to not expose everything to JS
-    private class DynamicAddon : NativeAddon {
-        public readonly ResNode Node = new() {
-            IsVisible = true
-        };
-
-        protected override unsafe void OnSetup(AtkUnitBase* addon) {
-            NodeIdCounter.EnsureNodeId(this.Node);
-            Services.NativeController.AttachToAddon(this.Node, this);
+        public void RemoveChild(IBridgeNode child) {
+            this.NativeController.DetachNode(child.Node);
         }
     }
 
     public struct AddonOptions {
-        public static readonly Vector2 DefaultSize = new(500, 500);
-
-        public BridgeVector2? Size { get; set; }
         public required string Title { get; set; }
-    }
-
-    public void Dispose() {
-        this.addon.Dispose();
+        public float Width { get; set; }
+        public float Height { get; set; }
     }
 }

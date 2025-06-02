@@ -2,15 +2,15 @@
 import React from "react";
 import ReactReconciler from "react-reconciler";
 import { DefaultEventPriority, NoEventPriority } from "react-reconciler/constants";
-import { FontType } from "./types";
-import { ReatkactContainer, ReatkactInstance, ReatkactProps, ReatkactType } from "./types/react";
+import { createInstance } from "./bridge";
+import { ReatkactContainer, ReatkactInstance, ReatkactProps, ReatkactTextInstance, ReatkactType } from "./types/react";
 
 interface HostConfigTypes {
   type: ReatkactType;
   props: ReatkactProps;
   container: ReatkactContainer;
-  instance: ReatkactInstance<any>;
-  textInstance: string;
+  instance: ReatkactInstance<ReatkactType>;
+  textInstance: ReatkactTextInstance;
   suspenseInstance: never;
   hydratableInstance: never;
   formInstance: never;
@@ -57,83 +57,22 @@ export type AtkReconciler = ReactReconciler.Reconciler<
   HostConfigTypes["publicInstance"]
 >;
 
-function getChildrenString(children?: React.ReactNode) {
-  if (typeof children === "string") {
-    return children.trim();
-  } else if (Array.isArray(children)) {
-    let str = "";
-    for (const child of children) {
-      const childStr = getChildrenString(child);
-      if (childStr != null) str += childStr + " ";
-    }
-    return str.trim();
-  } else {
-    return undefined;
-  }
-}
-
-function enumMap<T extends string>(
-  map: Record<T, number>,
-  value?: T
-) {
-  if (value == null) return value;
-  const result = map[value];
-  if (result != null) return result;
-  throw new Error("Failed to map enum value: " + value);
-}
-
-function createInstance<T extends ReatkactType>(type: T): ReatkactInstance<T> {
-  const assertType = <TT extends ReatkactType>(obj: ReatkactInstance<TT>) => {
-    // I don't know why this is needed. is my type broken? did I find a tsc bug? who knows!
-    return obj as ReatkactInstance<T>;
-  };
-
-  switch (type) {
-    case "atkText": {
-      return assertType({
-        instance: new BridgeTextNode(),
-        applyProps(props) {
-          this.instance.ApplyProps({
-            ...props,
-            font: enumMap(FontType, props.font),
-            children: getChildrenString(props.children)
-          });
-        }
-      });
-    }
-
-    case "atkTextButton": {
-      return assertType({
-        instance: new BridgeTextButtonNode(),
-        applyProps(props) {
-          this.instance.ApplyProps({
-            ...props,
-            children: getChildrenString(props.children)
-          });
-        }
-      });
-    }
-
-    default: {
-      throw new Error("Unknown element type: " + type);
-    }
-  }
-}
-
-export default function createReconciler(container: ReatkactContainer) {
+function createReconciler() {
   let currentUpdatePriority: number = NoEventPriority;
 
-  const config: AtkHostConfig = {
+  const settings = {
     supportsMutation: true,
     supportsMicrotasks: true,
     isPrimaryRenderer: true,
     supportsPersistence: false,
-    supportsHydration: false,
+    supportsHydration: false
+  } as const satisfies Partial<AtkHostConfig>;
 
-    // creation and props application
+  const nodeManipulation = {
+    // creating and applying props
     createInstance(type, props, rootContainer, hostContext, internalHandle) {
       const instance = createInstance(type);
-      instance.applyProps(props);
+      instance.applyProps(instance.convertProps(props));
       return instance;
     },
     createTextInstance(
@@ -142,58 +81,66 @@ export default function createReconciler(container: ReatkactContainer) {
       hostContext,
       internalHandle
     ) {
-      return text;
+      return { type: "text", obj: text };
     },
     commitUpdate(instance, type, prevProps, nextProps, internalHandle) {
-      // TODO: this is slow, only send what changes
-      instance.applyProps(nextProps);
+      instance.applyProps(
+        instance.convertProps(nextProps),
+        instance.convertProps(prevProps)
+      );
     },
     commitTextUpdate(textInstance, oldText, newText) {
-      throw new Error("Function not implemented.");
+      console.warn("IMPL: commitTextUpdate");
     },
 
-    // application and moving nodes
+    // moving and deleting nodes
     appendInitialChild(parentInstance, child) {
-      if (typeof child === "string") return;
-      parentInstance.instance.AppendNode(child.instance);
+      if (child.type === "instance") {
+        parentInstance.obj.AppendNodeRaw(child.obj);
+      }
     },
     appendChild(parentInstance, child) {
-      if (typeof child === "string") return;
-      parentInstance.instance.AppendNode(child.instance);
+      if (child.type === "instance") {
+        parentInstance.obj.AppendNodeRaw(child.obj);
+      }
     },
     appendChildToContainer(container, child) {
-      if (typeof child === "string") return;
-      console.log("appendChildToContainer", container, child);
-      container.AppendNode(child.instance);
+      if (child.type == "instance") {
+        container.obj.AppendNodeRaw(child.obj);
+      }
     },
     insertBefore(parentInstance, child, beforeChild) {
-      if (typeof child === "string" || typeof beforeChild === "string") return;
-      parentInstance.instance.InsertBefore(child.instance, beforeChild.instance);
+      if (child.type === "instance" && beforeChild.type === "instance") {
+        parentInstance.obj.InsertBeforeRaw(child.obj, beforeChild.obj);
+      }
     },
     insertInContainerBefore(container, child, beforeChild) {
-      if (typeof child === "string" || typeof beforeChild === "string") return;
-      container.InsertBefore(child.instance, beforeChild.instance);
+      if (child.type === "instance" && beforeChild.type === "instance") {
+        container.obj.InsertBeforeRaw(child.obj, beforeChild.obj);
+      }
     },
     removeChild(parentInstance, child) {
-      if (typeof child === "string") return;
-      parentInstance.instance.RemoveChild(child.instance);
+      if (child.type === "instance") {
+        parentInstance.obj.RemoveChildRaw(child.obj);
+      }
     },
     removeChildFromContainer(container, child) {
-      if (typeof child === "string") return;
-      container.RemoveChild(child.instance);
-    },
+      if (child.type === "instance") {
+        container.obj.RemoveChildRaw(child.obj);
+      }
+    }
+  } as const satisfies Partial<AtkHostConfig>;
 
-    // text
+  const text = {
     shouldSetTextContent(type, props) {
-      if ("children" in props && typeof props.children === "string") return true;
-      const types: ReatkactType[] = ["atkText"];
-      return types.includes(type);
+      return true;
     },
     resetTextContent(instance) {
       console.warn("IMPL: resetTextContent");
-    },
+    }
+  } as const satisfies Partial<AtkHostConfig>;
 
-    // visibility
+  const visibility = {
     hideInstance(instance) {
       console.warn("IMPL: hideInstance");
     },
@@ -208,9 +155,14 @@ export default function createReconciler(container: ReatkactContainer) {
     },
     clearContainer(container) {
       console.warn("IMPL: clearContainer");
-    },
+    }
+  } as const satisfies Partial<AtkHostConfig>;
 
-    // updates
+  const updates = {
+    scheduleTimeout: setTimeout,
+    cancelTimeout: clearTimeout,
+    noTimeout: -1,
+    scheduleMicrotask: queueMicrotask,
     setCurrentUpdatePriority(newPriority) {
       currentUpdatePriority = newPriority;
     },
@@ -220,27 +172,31 @@ export default function createReconciler(container: ReatkactContainer) {
     resolveUpdatePriority() {
       if (currentUpdatePriority !== NoEventPriority) return currentUpdatePriority;
       return DefaultEventPriority;
-    },
+    }
+  } as const satisfies Partial<AtkHostConfig>;
 
-    finalizeInitialChildren: () => false,
-    commitMount() {},
-
+  const getters = {
     getRootHostContext: () => ({}),
     getChildHostContext(parentHostContext) {
-      return parentHostContext; // TODO check
+      return parentHostContext;
     },
     getPublicInstance(instance) {
-      return instance; // TODO check
-    },
+      return instance.obj;
+    }
+  } as const satisfies Partial<AtkHostConfig>;
+
+  const transition = {
+    NotPendingTransition: null,
+    HostTransitionContext: React.createContext<HostConfigTypes["transitionStatus"]>(null)
+  } as const satisfies Partial<AtkHostConfig>;
+
+  const stubs = {
+    finalizeInitialChildren: () => false,
+    commitMount() {},
 
     prepareForCommit: () => null,
     resetAfterCommit() {},
     preparePortalMount() {},
-
-    scheduleTimeout: setTimeout,
-    cancelTimeout: clearTimeout,
-    noTimeout: -1,
-    scheduleMicrotask: queueMicrotask,
 
     maySuspendCommit: () => false,
     preloadInstance: () => true,
@@ -259,11 +215,21 @@ export default function createReconciler(container: ReatkactContainer) {
     resolveEventTimeStamp: () => -1.1,
     requestPostPaintCallback() {},
     detachDeletedInstance() {},
-    resetFormInstance() {},
+    resetFormInstance() {}
+  } as const satisfies Partial<AtkHostConfig>;
 
-    NotPendingTransition: null,
-    HostTransitionContext: React.createContext<HostConfigTypes["transitionStatus"]>(null)
+  const config: AtkHostConfig = {
+    ...settings,
+    ...nodeManipulation,
+    ...text,
+    ...visibility,
+    ...updates,
+    ...getters,
+    ...transition,
+    ...stubs
   } satisfies AtkHostConfig;
 
   return ReactReconciler(config as any) as AtkReconciler;
 }
+
+export default createReconciler();

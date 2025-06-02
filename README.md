@@ -26,9 +26,7 @@ Using a custom React renderer removes the overhead of running an entire web brow
 
 ### Implemented features
 
-Currently, the only implemented components are `atkText` and `atkTextButton`, with a subset of props implemented for them. Most things beyond position/size are not implemented.
-
-Props currently work by marshalling the props object to a C# struct, which as a result means public refs do not work well. In the future, this will just be changed to setting properties on the C# class in the JavaScript renderer. Events are not implemented yet, as they need a custom callback system.
+Currently, the only implemented components are `atkText` and `atkTextButton`, with a subset of props implemented for them. Most things beyond position/size are not implemented. Events are not implemented yet, as they need a custom callback system.
 
 SeString macros work in text, but they need to be escaped as a string because of the used characters (e.g. `{"<color(0xFFFFFF)>Red text!<color(stackcolor)>"}`), and they aren't fully evaluated. This might be converted into a separate component in the future.
 
@@ -37,11 +35,11 @@ There is no automatic layouting, as ATK doesn't really have that. Components mus
 ### TODO
 
 - [ ] Implement more elements
-- [ ] Expose properties directly on the classes instead of calling a props method
 - [ ] Add event handlers (e.g. button clicks)
 - [ ] Add full SeString evaluation (only some macro strings are supported right now)
 - [ ] Send Node.js logs to the plugin
 - [ ] Add (hot) loading custom scripts
+- [x] Expose properties directly on the classes instead of calling a props method
 
 ### Node.js runtime
 
@@ -59,8 +57,8 @@ pnpm run build # or `pnpm run watch`, `pnpm run clean`
 
 ### Creating a new element
 
-- Create the node's bridge class and its props struct (see `Bridge/BridgeTextNode.cs` as an example).
-- Register the bridge class and props struct in the Node runtime (`NodeRuntime.cs`).
-- Define the props in the TypeScript types (`types/props.ts`).
-- Define the bridge class in the TypeScript types (`types/global.ts`).
-- Create the React instance mapping to the bridge class (see `createInstance` in `reconciler.ts`).
+- Create the node's bridge class (see the classes in `Bridge/Nodes`).
+- Register the bridge class in the Node runtime (`NodeRuntime.cs`).
+- Define the bridge class in the TypeScript types (`types/bridge.ts`).
+- Define the props in the TypeScript types (`types/config.ts`).
+- Map the React props to the bridge class (`bridge.ts`).

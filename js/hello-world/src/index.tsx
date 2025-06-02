@@ -15,7 +15,8 @@ function HelloWorld() {
   return (
     <>
       <atkText
-        position={{ x: 10, y: 40 }}
+        x={10}
+        y={40}
         font="Jupiter"
         fontSize={24}
       >
@@ -23,14 +24,16 @@ function HelloWorld() {
       </atkText>
 
       <atkText
-        position={{ x: 10, y: 70 }}
+        x={10}
+        y={70}
       >
         The current time is {time.toString()}
       </atkText>
 
       <atkTextButton
-        position={{ x: 10, y: 90 }}
-        size={{ x: 150, y: 28 }}
+        x={10}
+        y={90}
+        width={150}
       >
         Why does this exist
       </atkTextButton>
@@ -38,20 +41,11 @@ function HelloWorld() {
   );
 }
 
-export default function run() {
-  try {
-    const container = Reatkact.createContainer({
-      title: "Hello World",
-      size: { x: 600, y: 300 }
-    });
-    const root = Reatkact.createRoot(container);
-    const unmount = root.render(<HelloWorld />);
-    return () => {
-      // without this the game will deadlock GCing lol
-      unmount();
-    };
-  } catch (e) {
-    // just for debugging react issues
-    console.error(e);
+export default Reatkact.run(
+  <HelloWorld />,
+  {
+    title: "Hello World",
+    width: 600,
+    height: 300
   }
-}
+);

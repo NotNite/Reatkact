@@ -8,10 +8,15 @@ namespace Reatkact;
 public class Configuration : IPluginConfiguration {
     public int Version { get; set; } = 0;
 
-    [JsonProperty] public nint? ContextHandle;
-    [JsonProperty] public long? ContextProcessTime;
+    [JsonProperty] public NodeContext? Context;
 
     public void Save() {
         Services.PluginInterface.SavePluginConfig(this);
+    }
+
+    public record NodeContext {
+        [JsonProperty] public nint Handle;
+        [JsonProperty] public int ProcessId;
+        [JsonProperty] public long ProcessTime;
     }
 }

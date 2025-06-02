@@ -8,57 +8,65 @@ using Microsoft.JavaScript.NodeApi;
 using Microsoft.JavaScript.NodeApi.DotNetHost;
 using Microsoft.JavaScript.NodeApi.Runtime;
 using Reatkact.Bridge;
+using Reatkact.Bridge.Nodes;
 
 namespace Reatkact;
 
 public class NodeRuntime : IDisposable {
     private readonly NodeEmbeddingThreadRuntime node;
-    private JSReference? unmount;
+    private JSReference? unload;
 
-    public NodeRuntime(NodeEmbeddingPlatform platform, string dir) {
-        this.node = platform.CreateThreadRuntime(dir, new NodeEmbeddingRuntimeSettings() {
+    public NodeRuntime(
+        Configuration configuration,
+        string? baseDir = null
+    ) {
+        var platform = GetPlatform(configuration);
+        this.node = platform.CreateThreadRuntime(baseDir, new NodeEmbeddingRuntimeSettings() {
             MainScript =
                 "globalThis.require = require('module').createRequire(process.execPath);\n"
         });
 
-        // Setup marshaling for our classes
+        // Setup marshalling for our classes
         this.node.Run(() => {
             try {
-                var marshaller = new JSMarshaller {
-                    AutoCamelCase = true
-                };
-                var exporter = new TypeExporter(marshaller);
-
-                // enums
-                RegisterClass<FontType>(false);
-
-                // structs
-                RegisterClass<BridgeVector2>(false);
-                RegisterClass<BridgeAddon.AddonOptions>(false);
-                RegisterClass<BridgeTextNode.TextNodeProps>(false);
-                RegisterClass<BridgeTextButtonNode.TextButtonNodeProps>(false);
-
-                // classes
-                RegisterClass<BridgeAddon>();
-                RegisterClass<BridgeTextNode>();
-                RegisterClass<BridgeTextButtonNode>();
-                return;
-
-                void RegisterClassType(Type type, bool ctor = true) {
-                    var obj = exporter.ExportType(type);
-                    if (ctor) JSValue.Global.SetProperty(type.Name, obj.GetValue());
-                }
-
-                void RegisterClass<T>(bool ctor = true) where T : notnull => RegisterClassType(typeof(T), ctor);
+                this.BindTypes();
             } catch (Exception e) {
-                Services.PluginLog.Error(e, "Failed to register types");
+                Services.PluginLog.Error(e, "Failed to bind types");
             }
         });
     }
 
+    private void BindTypes() {
+        // This is unfortunately done by hand with reflection, the source generator is only for native addons
+        var marshaller = new JSMarshaller {
+            AutoCamelCase = true
+        };
+        var exporter = new TypeExporter(marshaller);
+        var bridge = new JSObject();
+
+        // Enums
+        RegisterType(typeof(FontType), define: false);
+
+        // Structs
+        RegisterType(typeof(BridgeAddon.AddonOptions), define: false);
+
+        // Classes
+        RegisterType(typeof(BridgeAddon));
+        RegisterType(typeof(TextNode));
+        RegisterType(typeof(TextButtonNode));
+
+        JSValue.Global.SetProperty("ReatkactBridge", bridge);
+        return;
+
+        void RegisterType(Type type, bool define = true, string? name = null) {
+            var value = exporter.ExportType(type);
+            if (define) bridge[name ?? type.Name] = value.GetValue();
+        }
+    }
+
     // Since this can only be created once per process, we need to reuse the same pointer across plugin reloads
     // Yes, this is terrible
-    public static NodeEmbeddingPlatform GetPlatform(Configuration configuration) {
+    private static NodeEmbeddingPlatform GetPlatform(Configuration configuration) {
         var libnode = Path.Combine(
             Services.PluginInterface.AssemblyLocation.DirectoryName!,
             "runtimes",
@@ -68,11 +76,14 @@ public class NodeRuntime : IDisposable {
         );
 
         // Should be unique enough to determine when the game restarts
+        var process = Process.GetCurrentProcess();
+        var processId = process.Id;
         var processTime = ((DateTimeOffset) Process.GetCurrentProcess().StartTime).ToUnixTimeSeconds();
 
-        if (configuration.ContextHandle is { } existingHandle
-            && existingHandle != nint.Zero
-            && configuration.ContextProcessTime == processTime) {
+        if (configuration.Context is { } context
+            && context.Handle != nint.Zero
+            && context.ProcessId == processId
+            && context.ProcessTime == processTime) {
             // Don't run the constructor, it'll create a second context!
             var type = typeof(NodeEmbeddingPlatform);
             var platform = (NodeEmbeddingPlatform) RuntimeHelpers.GetUninitializedObject(type);
@@ -82,7 +93,7 @@ public class NodeRuntime : IDisposable {
 
             NodeEmbedding.Initialize(libnode);
 
-            var handle = new NodejsRuntime.node_embedding_platform(existingHandle);
+            var handle = new NodejsRuntime.node_embedding_platform(context.Handle);
             type.GetField("_platform", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .SetValue(platform, handle);
 
@@ -94,25 +105,32 @@ public class NodeRuntime : IDisposable {
                 Args = ["node", "--expose-gc"]
             });
 
-            configuration.ContextHandle = platform.Handle.Handle;
-            configuration.ContextProcessTime = processTime;
+            configuration.Context = new Configuration.NodeContext() {
+                Handle = platform.Handle.Handle,
+                ProcessId = processId,
+                ProcessTime = processTime
+            };
             configuration.Save();
 
             return platform;
         }
     }
 
-    public void Start() {
+    // TODO: hot reloading?
+    public void Start(string file) {
         Services.PluginLog.Debug("Inspector started on {Uri}", this.node.StartInspector().ToString());
 
         this.node.Run(() => {
             try {
-                var func = (this.node.Import("./index.js"))["default"].As<JSFunction>();
-                if (func is null) throw new Exception("Failed to find init function");
+                var module = this.node.Import(file);
 
-                var result = func.Value.CallAsStatic().As<JSFunction>();
-                if (result is null) throw new Exception("No unmount function returned");
-                this.unmount = new JSReference(result.Value);
+                var init = module.GetProperty("default").As<JSFunction>();
+                if (init is null) throw new Exception("Failed to find init function");
+
+                var unloadFunc = init.Value.CallAsStatic().As<JSFunction>();
+                if (unloadFunc is null) throw new Exception("No unload function returned - bad things will happen!");
+
+                this.unload = new JSReference(unloadFunc.Value);
             } catch (Exception e) {
                 Services.PluginLog.Error(e, "Failed to initialize");
             }
@@ -122,8 +140,10 @@ public class NodeRuntime : IDisposable {
     }
 
     public void Dispose() {
+        // This unload function is important, because without it, the React renderer is still doing things
+        // This hangs/crashes if we unload while that happens, presumably since it can't GC the created classes
         try {
-            this.unmount?.Run((f) => f.AsUnchecked<JSFunction>().CallAsStatic());
+            this.unload?.Run((f) => f.AsUnchecked<JSFunction>().CallAsStatic());
         } catch (Exception e) {
             Services.PluginLog.Error(e, "Failed to call unmount, game will probably deadlock now lol");
         }

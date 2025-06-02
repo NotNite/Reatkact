@@ -1,5 +1,5 @@
-import { AddonOptions, ElementControls } from "./bridge";
-import { AtkElementInstance, AtkIntrinsicElements } from "./props";
+import { ReatkactBridge } from "./bridge";
+import { AtkIntrinsicElements } from "./config";
 
 declare module "react" {
   namespace JSX {
@@ -8,14 +8,7 @@ declare module "react" {
 }
 
 declare global {
-  export class BridgeAddon extends ElementControls {
-    constructor(opts: AddonOptions);
-    Open(): void;
-    Close(): void;
-  }
-
-  const BridgeTextNode: typeof AtkElementInstance<"atkText">;
-  const BridgeTextButtonNode: typeof AtkElementInstance<"atkTextButton">;
+  const ReatkactBridge: ReatkactBridge;
 }
 
 export {};

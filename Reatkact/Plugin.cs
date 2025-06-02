@@ -13,22 +13,22 @@ public sealed class Plugin : IDalamudPlugin {
         Services.NativeController = new NativeController(pluginInterface);
 
         this.configuration = Services.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-        var platform = NodeRuntime.GetPlatform(this.configuration);
 
         // FIXME: lol
         var pluginDir = Services.PluginInterface.AssemblyLocation.DirectoryName!;
-        var dir = Path.Combine(
+        var file = Path.Combine(
             pluginDir,
             "..", // Debug
             "..", // bin
             "..", // Reatkact
             "js",
             "hello-world",
-            "dist"
+            "dist",
+            "index.js"
         );
 
-        this.runtime = new NodeRuntime(platform, dir);
-        this.runtime.Start();
+        this.runtime = new NodeRuntime(this.configuration, Path.GetDirectoryName(file));
+        this.runtime.Start(file);
     }
 
     public void Dispose() {
