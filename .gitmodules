@@ -1,0 +1,3 @@
+[submodule "libs/KamiToolKit"]
+	path = libs/KamiToolKit
+	url = https://github.com/MidoriKami/KamiToolKit.git

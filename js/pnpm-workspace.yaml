@@ -1,0 +1,11 @@
+packages:
+  - reatkact
+  - hello-world
+
+catalog:
+  typescript: ^5.8.3
+  react: ^19.1.0
+  react-reconciler: ^0.32.0
+  "@types/node": ^20.17.52
+  "@types/react": ^19.1.6
+  "@types/react-reconciler": ^0.32.0

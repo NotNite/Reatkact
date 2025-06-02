@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net9.0-windows7.0": {
+      "DalamudPackager": {
+        "type": "Direct",
+        "requested": "[12.0.0, )",
+        "resolved": "12.0.0",
+        "contentHash": "J5TJLV3f16T/E2H2P17ClWjtfEBPpq3yxvqW46eN36JCm6wR+EaoaYkqG9Rm5sHqs3/nK/vKjWWyvEs/jhKoXw=="
+      },
+      "DotNet.ReproducibleBuilds": {
+        "type": "Direct",
+        "requested": "[1.2.25, )",
+        "resolved": "1.2.25",
+        "contentHash": "xCXiw7BCxHJ8pF6wPepRUddlh2dlQlbr81gXA72hdk4FLHkKXas7EH/n+fk5UCA/YfMqG1Z6XaPiUjDbUNBUzg=="
+      },
+      "Microsoft.JavaScript.LibNode": {
+        "type": "Direct",
+        "requested": "[20.1800.215, )",
+        "resolved": "20.1800.215",
+        "contentHash": "EX8X4xaohqk11kqo8LLOTegAAdR7qC6PWCVTAkNva0mhfJ+DE0082nkRHnuCXyadkgcYTcO+DZFS00NGNRigIw==",
+        "dependencies": {
+          "Microsoft.JavaScript.LibNode.linux-arm64": "20.1800.215",
+          "Microsoft.JavaScript.LibNode.linux-x64": "20.1800.215",
+          "Microsoft.JavaScript.LibNode.osx-arm64": "20.1800.215",
+          "Microsoft.JavaScript.LibNode.osx-x64": "20.1800.215",
+          "Microsoft.JavaScript.LibNode.win-arm64": "20.1800.215",
+          "Microsoft.JavaScript.LibNode.win-x64": "20.1800.215",
+          "Microsoft.JavaScript.LibNode.win-x86": "20.1800.215"
+        }
+      },
+      "Microsoft.JavaScript.NodeApi": {
+        "type": "Direct",
+        "requested": "[0.9.11, )",
+        "resolved": "0.9.11",
+        "contentHash": "y2zZxCQJxPiIT4FBNubnVxEm+eaEEXxBhQ+Ukgqokm5WPWrHPLXsmJdd5ZWvOL36/1U0lPfYVVp4eWQXPeyVrQ=="
+      },
+      "Microsoft.JavaScript.NodeApi.DotNetHost": {
+        "type": "Direct",
+        "requested": "[0.9.11, )",
+        "resolved": "0.9.11",
+        "contentHash": "DJXE5XmIhwErzbam7EduEAL8Wf3dRpLfpjXZT5q3wcwXPiYCJevrt7oWK4U/6Vx88v0d4pH5d6adEBVAzVX7Xw=="
+      },
+      "Microsoft.JavaScript.LibNode.linux-arm64": {
+        "type": "Transitive",
+        "resolved": "20.1800.215",
+        "contentHash": "EUwCWml4heIAAiu5Zh4hAJSzRZ9Xl+Rqsduzkm4XhF6VKiugosXDKEzXDJqp22Qlsszs4os2VJnG/H4IJe8y0g=="
+      },
+      "Microsoft.JavaScript.LibNode.linux-x64": {
+        "type": "Transitive",
+        "resolved": "20.1800.215",
+        "contentHash": "3yqHW1owVbkjy4Gc3zbXKVrAbFm0gFpojHwoGVVcN5xWN2oijYilSAGu9mr0UOBaS4UVtDtehbjnYf5OiC3Eqw=="
+      },
+      "Microsoft.JavaScript.LibNode.osx-arm64": {
+        "type": "Transitive",
+        "resolved": "20.1800.215",
+        "contentHash": "mR5rbP6D/FBJva+2bSDKcROnseHQx5+YWZQqI48zRoJCNrwO9Tez3YjjvTb4AZ6+Z/YowS1vCChO1TUuaUGlqQ=="
+      },
+      "Microsoft.JavaScript.LibNode.osx-x64": {
+        "type": "Transitive",
+        "resolved": "20.1800.215",
+        "contentHash": "NFnN4PJhe3Y5MDoLcvibht9jW6z4a+pvEz5EGqZO1pqTQ/VL3T6AbqVG4ijZE0hzFB6nrAl/SnI4UfcoCFw60Q=="
+      },
+      "Microsoft.JavaScript.LibNode.win-arm64": {
+        "type": "Transitive",
+        "resolved": "20.1800.215",
+        "contentHash": "f8RUdbGegD3WxRX8sJL5KxJ0Bj2jXEMG0gZ909A7Qz+uTp+JrldM2bpvxe6SqM5nixEsUIeZ17tb5NiSFVHmhQ=="
+      },
+      "Microsoft.JavaScript.LibNode.win-x64": {
+        "type": "Transitive",
+        "resolved": "20.1800.215",
+        "contentHash": "XxSF75GFOzbZ3mQoIhFL0RBvgDDKADZxk4cZdP3l5khxFmQx4P7j2Q3sBmAzd/LCHj3u05ponpvMYnRiRNOAyQ=="
+      },
+      "Microsoft.JavaScript.LibNode.win-x86": {
+        "type": "Transitive",
+        "resolved": "20.1800.215",
+        "contentHash": "n/5l0eDL2370X3RB3j5Audew252cv6Mv3IupFaDQw2Z107gS6xDE39Y/YT+Jv+W3iH0S3q88BmHKNs6LIxKuUw=="
+      },
+      "kamitoolkit": {
+        "type": "Project"
+      }
+    }
+  }
+}

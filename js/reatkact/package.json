@@ -1,0 +1,22 @@
+{
+  "name": "reatkact",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "tsc --clean"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "react-reconciler": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-reconciler": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  }
+}

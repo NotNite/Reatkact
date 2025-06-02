@@ -1,0 +1,17 @@
+{
+  "name": "hello-world",
+  "private": true,
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "tsc --clean"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "reatkact": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:"
+  }
+}

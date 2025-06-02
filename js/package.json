@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "pnpm run -r build",
+    "watch": "pnpm run --parallel watch",
+    "clean": "pnpm run --parallel clean"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

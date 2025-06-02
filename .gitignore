@@ -1,0 +1,8 @@
+bin/
+obj/
+node_modules/
+dist/
+.idea/
+.vs/
+*.user
+/local

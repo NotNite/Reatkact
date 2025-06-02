@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "esModuleInterop": true,
+
+    "lib": ["es2023"],
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "node16",
+
+    "jsx": "react"
+  },
+  "exclude": ["node_modules", "dist"]
+}
